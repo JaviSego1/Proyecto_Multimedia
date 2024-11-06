@@ -1,97 +1,86 @@
 package com.example.pruebaintent
 
-import android.annotation.SuppressLint
-import android.content.Context
+import android.Manifest
+import android.net.Uri
+import android.os.Bundle
+import android.widget.Button
 import android.content.Intent
 import android.content.SharedPreferences
-import android.os.Bundle
+import android.content.pm.PackageManager
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
+import android.widget.EditText
+import android.widget.ImageView
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
-import com.example.pruebaintent.databinding.FirstActivityExplicitBinding
+import androidx.core.app.ActivityCompat
 
 
 class ConfActivity : AppCompatActivity() {
 
-    private lateinit var firstActivityExplicitBinding: FirstActivityExplicitBinding
-    private lateinit var sharedFich : SharedPreferences
-    private lateinit var nameSharedPhone: String
+    private lateinit var sharedPreferences: SharedPreferences
+    private lateinit var zonaTelefono: EditText
+    private lateinit var editarTelefono: ImageView
+
+    private var telefono: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        firstActivityExplicitBinding = FirstActivityExplicitBinding.inflate(layoutInflater)
-        setContentView(firstActivityExplicitBinding.root)
+        setContentView(R.layout.first_activity_explicit)
+
         enableEdgeToEdge()
 
-        ViewCompat.setOnApplyWindowInsetsListener(firstActivityExplicitBinding.main) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-            insets
-        }
-        initPreferentShared()
-        start()
-    }
+        sharedPreferences = getSharedPreferences("PreferenciasApp", MODE_PRIVATE)
 
-    private fun initPreferentShared() {
-        val nameSharedFich = "shared fich"
-        this.nameSharedPhone = "phone_number"
+        zonaTelefono = findViewById(R.id.zonaTelefono)
+        val botonLlamar = findViewById<Button>(R.id.buttonLlamar)
+        editarTelefono = findViewById(R.id.editarTelefono)
 
-        this.sharedFich = getSharedPreferences(nameSharedFich, Context.MODE_PRIVATE)
-    }
+        val numeroGuardado = sharedPreferences.getString("numeroTelefono", "")
+        zonaTelefono.setText(numeroGuardado)
+        zonaTelefono.isEnabled = false
 
-    override fun onResume() {
-        super.onResume()
-        val ret = intent.getBooleanExtra("back", false)
-        if (ret){
-            firstActivityExplicitBinding.editPhone.setText("")
-            Toast.makeText(this,"Proporcione un número de teléfono", Toast.LENGTH_LONG).show()
-            intent.removeExtra("back")
-        }
-    }
-
-
-
-    private fun start() {
-        val sharedPhone : String? = sharedFich.getString(nameSharedPhone, null)
-
-        sharedPhone?.let {
-            startMainActivty(it)
+        editarTelefono.setOnClickListener {
+            zonaTelefono.isEnabled = true
+            zonaTelefono.requestFocus()
         }
 
-        firstActivityExplicitBinding.btnConf.setOnClickListener {
-            val numberPhone = firstActivityExplicitBinding.textView.text.toString()
-            if (numberPhone.isEmpty())
-                Toast.makeText(this, "Introduce un numero de teléfono válido", Toast.LENGTH_LONG).show()
-            else
-                if (!isValidPhoneNumber(numberPhone, "ES"))
-                    Toast.makeText(this, "Teléfono no válido", Toast.LENGTH_SHORT).show()
-            else {
-                val edit = sharedFich.edit()
-                    edit.putString(nameSharedPhone, numberPhone)
+        botonLlamar.setOnClickListener {
+            val numero = zonaTelefono.text.toString()
 
-                }
+            if (numero.isBlank()) {
+                Toast.makeText(this, "Introduce un número de teléfono", Toast.LENGTH_SHORT).show()
+            } else {
+                sharedPreferences.edit().putString("numeroTelefono", numero).apply()
+
+                telefono = numero
+
+                hacerLlamada(numero)
+            }
         }
 
-    }
-
-    private fun startMainActivty(phone: String) {
-        val intent = Intent(this@ConfActivity, MainActivity::class.java)
-        intent.apply {
-            putExtra("phone", phone)
-            addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+        val botonRegresar = findViewById<Button>(R.id.buttonVolver)
+        botonRegresar.setOnClickListener {
+            finish()
         }
-        startActivity(intent)
     }
 
-    override fun onNewIntent(intent: Intent) {
-        super.onNewIntent(intent)
-        setIntent(intent)
+    private fun hacerLlamada(numero: String) {
+        val llamadaIntent = Intent(Intent.ACTION_CALL, Uri.parse("tel:$numero"))
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.CALL_PHONE), 101)
+        } else {
+            startActivity(llamadaIntent)
+        }
     }
 
-    fun isValidPhoneNumber(phoneNumber: String, countryCode: String): Boolean {
-
-        return TODO("Provide the return value")
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 101 && grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            telefono?.let { hacerLlamada(it) }
+        } else {
+            Toast.makeText(this, "Permiso de llamada no otorgado", Toast.LENGTH_SHORT).show()
+        }
     }
+
 }
+
