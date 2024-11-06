@@ -14,19 +14,16 @@ import android.widget.ImageView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 
-
 class ConfActivity : AppCompatActivity() {
 
     private lateinit var sharedPreferences: SharedPreferences
     private lateinit var zonaTelefono: EditText
     private lateinit var editarTelefono: ImageView
-
     private var telefono: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.first_activity_explicit)
-
         enableEdgeToEdge()
 
         sharedPreferences = getSharedPreferences("PreferenciasApp", MODE_PRIVATE)
@@ -44,16 +41,14 @@ class ConfActivity : AppCompatActivity() {
             zonaTelefono.requestFocus()
         }
 
+
         botonLlamar.setOnClickListener {
             val numero = zonaTelefono.text.toString()
-
             if (numero.isBlank()) {
                 Toast.makeText(this, "Introduce un número de teléfono", Toast.LENGTH_SHORT).show()
             } else {
                 sharedPreferences.edit().putString("numeroTelefono", numero).apply()
-
                 telefono = numero
-
                 hacerLlamada(numero)
             }
         }
